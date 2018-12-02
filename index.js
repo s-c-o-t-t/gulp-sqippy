@@ -5,6 +5,7 @@ const PLUGIN_NAME = "gulp-sqippy";
 const sqip = require("sqip"),
 	through = require("through2"),
 	path = require("path"),
+	fs = require("fs"),
 	log = require("fancy-log");
 
 const sqipModes = [
@@ -54,18 +55,21 @@ const sqipModes = [
  */
 var makeSvgPlaceholder = function(filepath, options) {
 	if (typeof options == "undefined") {
-		var options = {
-			default: true,
-		};
+		var options = {};
 	}
 
 	const resultObject = sqip({
 		filename: filepath,
-		numberOfPrimitives: options.primitives || 20,
+		numberOfPrimitives: parseInt(options.primitives) || 20,
 		blur: options.blur || 10,
 		mode: options.mode || 5,
 	});
 	return resultObject.final_svg;
+};
+
+var getFileSizeMb = function(filePath) {
+	const stats = fs.statSync(filePath);
+	return stats.size / 1000000.0;
 };
 
 /**
@@ -74,31 +78,52 @@ var makeSvgPlaceholder = function(filepath, options) {
  */
 var gulpSqip = function(options) {
 	if (typeof options == "undefined") {
-		var options = {
-			default: true,
-		};
+		var options = {};
+		options.includeSource = options.includeSource === false ? false : true;
 	}
 
 	return through.obj(function(sourceFile, enc, callback) {
-		if (sourceFile === null || sourceFile.isDirectory()) {
-			// empty file or directory
-			this.push(sourceFile);
-			return callback();
-		}
-		if (sourceFile.isBuffer()) {
-			const f = path.parse(sourceFile.path);
-			log("Processing", f.name + f.ext);
+		const sourceInfo = path.parse(sourceFile.path);
+		if (sourceFile && sourceFile.isBuffer()) {
+			// log which file is being processed
+			let sizeText;
+			try {
+				sizeText = getFileSizeMb(sourceFile.path).toFixed(1) + "mb";
+			} catch (err) {
+				sizeText = "unknown";
+			}
+			log(
+				"Processing '%s' (%s with %s primitives)",
+				sourceInfo.name + sourceInfo.ext,
+				sizeText,
+				options.primitives || "default"
+			);
+			// make the new file
 			const sqipResult = makeSvgPlaceholder(sourceFile.path, options);
 			const svgFile = sourceFile.clone();
 			svgFile.contents = Buffer.from(sqipResult);
+			// set new file name
 			const appendName = typeof options.appendName == "string" ? options.appendName : "";
 			const prependName =
 				typeof options.prependName == "string" ? options.prependName : "";
-			svgFile.path = path.join(f.dir, prependName + f.name + appendName + ".svg");
+			svgFile.path = path.join(
+				sourceInfo.dir,
+				prependName + sourceInfo.name + appendName + ".svg"
+			);
+			// send file(s) along
 			this.push(svgFile);
+			if (options.includeSource) {
+				this.push(sourceFile);
+			}
 			callback();
 		} else {
-			this.emit("error", new PluginError(PLUGIN_NAME, "Only Buffer format is supported"));
+			this.emit(
+				"error",
+				new PluginError(
+					PLUGIN_NAME,
+					"Source must be a file in buffer format: " + sourceFile.path
+				)
+			);
 			callback();
 		}
 	});

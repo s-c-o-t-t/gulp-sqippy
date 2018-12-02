@@ -1,16 +1,17 @@
 # gulp-sqippy
 
-_Note: for now, this is me testing out NPM packages... so I'd skip until v1.0.0_
+Gulpified [sqip](https://www.npmjs.com/package/sqip) that allows full customization of sqip's existing options, and adds a few more. It creates a new SVG file in the stream, named the same as the source (with ".svg" extension, of course).
 
-Gulpified [sqip](https://www.npmjs.com/package/sqip) which allows full customization of sqip's available options, plus a few more. Creates a new SVG file in the stream, named same as the source (with ".svg" extension, of course).
+`sqip` seems to be a work in progress, but it's a cool package that creates SVG impressions of pixel images. Find the right balance between the mode, blur and primitives count, and you get a nice, small LQIP (low quality image placeholder). The default options below make a good placeholder image, but you could make it even smaller by reducing the primitives.
 
-## The options are:
+## The (optional) options are:
 
--   **primitives** - number of primitives (default 20)
--   **blur** - blur factor (default 10)
--   **mode** - mode code (default 5)
--   **prependName** - prepend to new file's name
--   **appendName** - append to new file's name
+-   **primitives** - number of primitives a.k.a. the shapes that make up the image (integer, default is 20)
+-   **blur** - blur factor (numeric, default is 10)
+-   **mode** - mode code (defined below, default is 5)
+-   **prependName** - text to prepend to the front of the new SVG filename (string)
+-   **appendName** - text to append to the end of the new SVG filename (string)
+-   **includeSource** - also pass the source image file through in the stream (boolean, default is false)
 
 ### Mode specifies the base shape for primitives. The mode codes are:
 
